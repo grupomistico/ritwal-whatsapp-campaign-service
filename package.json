@@ -1,0 +1,29 @@
+{
+  "name": "grupo-mistico-masivos-wpp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Safe WhatsApp Cloud API campaign service for Grupo Mistico.",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "masivoswpp": "node scripts/masivoswpp.mjs",
+    "smoke:production": "node scripts/production-smoke.mjs",
+    "deploy:dokploy": "node scripts/deploy-dokploy.mjs"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  }
+}
+
