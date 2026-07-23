@@ -47,3 +47,14 @@ La columna requerida es `phone`. Para plantillas con `{{nombre}}`, usar `first_n
 Los demas parametros nombrados pueden ir como columnas con el mismo nombre.
 
 Los CSV, bases, resultados crudos y `.env` estan excluidos de Git.
+
+## Despliegue
+
+```bash
+npm run provision:dokploy
+npm run deploy:dokploy
+npm run smoke:production
+```
+
+El aprovisionamiento es idempotente: reutiliza proyecto, aplicacion, volumen y
+dominio cuando ya existen.

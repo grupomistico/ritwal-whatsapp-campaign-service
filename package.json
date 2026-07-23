@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "masivoswpp": "node scripts/masivoswpp.mjs",
     "smoke:production": "node scripts/production-smoke.mjs",
+    "provision:dokploy": "node scripts/provision-dokploy.mjs",
     "deploy:dokploy": "node scripts/deploy-dokploy.mjs"
   },
   "engines": {
@@ -26,4 +27,3 @@
     "vitest": "^4.1.5"
   }
 }
-
