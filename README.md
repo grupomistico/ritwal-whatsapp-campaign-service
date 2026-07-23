@@ -43,8 +43,9 @@ npm run masivoswpp -- send GM-20260723-ABC123 \
 
 ## CSV
 
-La columna requerida es `phone`. Para plantillas con `{{nombre}}`, usar `first_name` o `name`.
-Los demas parametros nombrados pueden ir como columnas con el mismo nombre.
+Usar una columna `phone`, `telefono` o `whatsapp`. Para plantillas con
+`{{nombre}}`, usar `first_name`, `firstName`, `name` o `nombre`. Los demas
+parametros nombrados pueden ir como columnas con el mismo nombre.
 
 Los CSV, bases, resultados crudos y `.env` estan excluidos de Git.
 
