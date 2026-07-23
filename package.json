@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "masivoswpp": "node scripts/masivoswpp.mjs",
     "smoke:production": "node scripts/production-smoke.mjs",
+    "configure:webhook": "node scripts/configure-meta-webhook.mjs",
     "provision:dokploy": "node scripts/provision-dokploy.mjs",
     "deploy:dokploy": "node scripts/deploy-dokploy.mjs"
   },

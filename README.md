@@ -55,7 +55,9 @@ Los CSV, bases, resultados crudos y `.env` estan excluidos de Git.
 npm run provision:dokploy
 npm run deploy:dokploy
 npm run smoke:production
+npm run configure:webhook
 ```
 
 El aprovisionamiento es idempotente: reutiliza proyecto, aplicacion, volumen y
-dominio cuando ya existen.
+dominio cuando ya existen. `configure:webhook` solicita el App Secret sin
+mostrarlo, sincroniza Dokploy y registra el callback firmado en Meta.
