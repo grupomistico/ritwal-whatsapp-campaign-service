@@ -24,6 +24,7 @@ export function loadConfig(env = process.env) {
     toolSecret: env.TOOL_SECRET || "",
     dataDir: path.resolve(env.DATA_DIR || "./data"),
     piiEncryptionKey: env.PII_ENCRYPTION_KEY || "",
+    automationWebhookUrl: env.AUTOMATION_WEBHOOK_URL || "",
     security: {
       authorizedActors: actorMap(env.AUTHORIZED_ACTORS),
     },

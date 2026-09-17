@@ -19,7 +19,7 @@
     "node": ">=22.5"
   },
   "dependencies": {
-    "csv-parse": "^6.1.0",
+    "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "zod": "^4.4.3"

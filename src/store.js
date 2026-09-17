@@ -236,19 +236,21 @@ export class CampaignStore {
     metaMessageId,
     errorCode,
     errorMessage,
+    incrementAttempt = true,
   }) {
     const timestamp = nowIso();
     const acceptedAt = status === "accepted" ? timestamp : null;
     const failedAt = status === "failed" ? timestamp : null;
     this.db.prepare(`
       UPDATE recipients
-      SET status = ?, attempts = attempts + 1, meta_message_id = ?,
+      SET status = ?, attempts = attempts + ?, meta_message_id = ?,
           error_code = ?, error_message = ?, last_attempt_at = ?,
           accepted_at = COALESCE(accepted_at, ?),
           failed_at = COALESCE(failed_at, ?)
       WHERE id = ?
     `).run(
       status,
+      incrementAttempt ? 1 : 0,
       metaMessageId || null,
       errorCode ? String(errorCode) : null,
       errorMessage || null,
@@ -257,6 +259,16 @@ export class CampaignStore {
       failedAt,
       recipientId,
     );
+  }
+
+  markReserved(id) {
+    this.db.prepare("UPDATE recipients SET status='sending',attempts=attempts+1,last_attempt_at=? WHERE id=?")
+      .run(nowIso(), id);
+  }
+
+  markSkipped(id, reason) {
+    this.db.prepare("UPDATE recipients SET status='skipped',error_code=?,error_message=? WHERE id=?")
+      .run(reason, reason, id);
   }
 
   updateDeliveryStatus({

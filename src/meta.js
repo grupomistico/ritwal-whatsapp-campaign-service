@@ -57,6 +57,8 @@ export class MetaClient {
   async requestUrl(url, options = {}) {
     const response = await this.fetch(url, {
       ...options,
+      signal: AbortSignal.timeout(25000),
+      redirect: "error",
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
         ...(options.headers || {}),
@@ -92,4 +94,3 @@ export function isCriticalMetaError(error) {
   const status = error?.details?.httpStatus;
   return status === 401 || [10, 100, 190, 368, 130429, 131042, 131056].includes(code);
 }
-

@@ -2,19 +2,22 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { prepareAudience, normalizePhone } from "./audience.js";
 import { isCriticalMetaError } from "./meta.js";
 import { buildTemplateMessage, inspectTemplate } from "./templates.js";
+import { ContactTracker } from "./tracker.js";
+import { randomUUID } from "node:crypto";
 
 const PERMANENT_SUPPRESSION_CODES = new Set(["131026", "131050"]);
 const OPT_OUT_PATTERN =
-  /^\s*(stop|baja|cancelar|salir|no\s+me\s+(?:escriban|contacten)|no\s+quiero\s+(?:mensajes|recibir))[\s.!]*$/iu;
+  /^\s*(stop|baja|cancelar|salir|no\s+m[a\u00e1]s|no\s+me\s+(?:escriban|contacten)|no\s+quiero\s+(?:mensajes|recibir))[\s.!]*$/iu;
 
 export class CampaignService {
-  constructor({ config, meta, store, vault, logger = console }) {
+  constructor({ config, meta, store, vault, logger = console, tracker }) {
     this.config = config;
     this.meta = meta;
     this.store = store;
     this.vault = vault;
     this.logger = logger;
     this.activeRuns = new Set();
+    this.tracker = tracker || (store.db ? new ContactTracker(store, { fatigueHours: config.campaign.fatigueHours }) : null);
   }
 
   async account() {
@@ -121,7 +124,17 @@ export class CampaignService {
         mediaId: campaign.mediaId,
         parameters: recipient.parameters,
       });
-      const response = await this.meta.sendTemplate(message);
+      const key = `test:${campaignId}:${randomUUID()}`;
+      const claim = this.tracker?.reserve({ key, phone: recipient.phone, origin: "test", template: campaign.template, campaignId });
+      if (claim && !claim.allowed) throw new Error(`Test contact blocked: ${claim.reason}`);
+      let response;
+      try {
+        response = await this.meta.sendTemplate(message);
+        this.tracker?.complete({ key, status: response.messages?.[0]?.id ? "accepted" : "uncertain", messageId: response.messages?.[0]?.id });
+      } catch (error) {
+        this.tracker?.complete({ key, status: "uncertain", reason: "TEST_REMOTE_OUTCOME_UNKNOWN" });
+        throw error;
+      }
       results.push({
         phoneLast4: recipient.phone.slice(-4),
         accepted: response.messages?.[0]?.message_status === "accepted",
@@ -215,6 +228,8 @@ export class CampaignService {
     const recipients = this.store.getPendingRecipients(campaignId);
 
     for (const recipient of recipients) {
+      const key = `campaign:${campaignId}:${recipient.id}`;
+      let reserved = false;
       try {
         const message = buildTemplateMessage({
           phone: recipient.phone,
@@ -224,19 +239,32 @@ export class CampaignService {
           mediaId: campaign.mediaId,
           parameters: recipient.parameters,
         });
+        const claim = this.tracker?.reserve({ key, phone: recipient.phone, template: campaign.template,
+          campaignId, source: campaign.source, origin: "campaign", fatigueHours: this.config.campaign.fatigueHours });
+        if (claim && !claim.allowed) {
+          this.store.markSkipped(recipient.id, claim.reason);
+          continue;
+        }
+        this.store.markReserved(recipient.id);
+        reserved = true;
         const response = await this.meta.sendTemplate(message);
         const metaMessage = response.messages?.[0];
         const accepted = metaMessage?.message_status === "accepted";
+        this.tracker?.complete({ key, status: accepted ? "accepted" : "uncertain", messageId: metaMessage?.id });
         this.store.markAttempt(recipient.id, {
           status: accepted ? "accepted" : "failed",
           metaMessageId: metaMessage?.id,
           errorMessage: accepted ? null : "Meta did not return accepted",
+          incrementAttempt: false,
         });
       } catch (error) {
+        const definitive = error.details?.httpStatus >= 400 && error.details.httpStatus < 500;
+        if (reserved) this.tracker?.complete({ key, status: definitive ? "failed" : "uncertain", reason: definitive ? "META_REJECTED" : "REMOTE_OUTCOME_UNKNOWN" });
         this.store.markAttempt(recipient.id, {
-          status: isCriticalMetaError(error) ? "retry" : "failed",
+          status: reserved && !definitive ? "uncertain" : "failed",
           errorCode: error.details?.code,
           errorMessage: error.message,
+          incrementAttempt: !reserved,
         });
         if (isCriticalMetaError(error)) {
           this.store.setCampaignStatus(campaignId, "paused", {
@@ -299,6 +327,7 @@ export class CampaignService {
               ? new Date(Number(status.timestamp) * 1000).toISOString()
               : null,
           });
+          this.tracker?.applyStatus(status.id, status.status);
           statuses += 1;
           if (recipient && PERMANENT_SUPPRESSION_CODES.has(code)) {
             this.store.addSuppression({
@@ -312,7 +341,7 @@ export class CampaignService {
         }
 
         for (const message of value.messages || []) {
-          const text = message.text?.body || "";
+          const text = message.text?.body || message.button?.text || message.interactive?.button_reply?.title || "";
           const sender = normalizePhone(
             message.from,
             this.config.campaign.defaultCountryCode,
