@@ -27,6 +27,13 @@ function legacy(store, vault, { date = new Date().toISOString(), source = "preco
 afterEach(async () => { while (apps.length) await apps.pop().close(); while (stores.length) stores.pop().close(); });
 
 describe("shared communication tracker", () => {
+  it("preserves international identities without adding the Colombian prefix", () => {
+    const { tracker, vault } = setup();
+    for (const international of ["14155552671", "51987654321", "34612345678"]) {
+      expect(tracker.identity(`+${international}`).hash).toBe(vault.hashPhone(international));
+      expect(tracker.inspect(international)).toMatchObject({ consent: "unknown", fatigue: false });
+    }
+  });
   it("reads historical sends without copying phone data or assuming consent", () => {
     const { store, tracker, vault } = setup(); legacy(store, vault);
     expect(tracker.inspect(phone)).toMatchObject({ fatigue: true, consent: "unknown" });

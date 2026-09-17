@@ -35,7 +35,8 @@ export class ContactTracker {
   }
 
   identity(phone) {
-    const normalized = normalizePhone(phone, "57");
+    // Callers already supply international numbers; never prepend a default country again.
+    const normalized = normalizePhone(phone, "");
     if (!normalized) throw new Error("INVALID_PHONE");
     return { hash: this.vault.hashPhone(normalized), last4: normalized.slice(-4) };
   }
